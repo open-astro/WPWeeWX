@@ -4,15 +4,20 @@ Display WeeWX JSON weather data with a shortcode.
 
 ## Plugin Info
 
-- Contributors: Joey Troy
+- Contributors: Joey Troy, gpt-5.2-codex
 - Requires at least: 6.0
 - Tested up to: 6.6
 - Requires PHP: 8.0
 - Stable tag: 0.1.0
+- License: GPLv3
+- License URI: https://www.gnu.org/licenses/gpl-3.0.html
+- Plugin Website: https://github.com/open-astro/WPWeeWX
 
 ## Description
 
 WPWeeWX fetches WeeWX-generated JSON and renders responsive weather dashboards.
+
+![WPWeeWX Dashboard Preview](assets/icons/preview.jpg)
 
 ## Installation
 
