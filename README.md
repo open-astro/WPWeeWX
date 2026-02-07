@@ -27,7 +27,7 @@ WPWeeWX fetches WeeWX-generated JSON and renders responsive weather dashboards.
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin in WordPress.
-3. Install the WeeWX JSON generator (weewx-json) from https://github.com/open-astro/weewx-json/releases.
+3. Install [WeeWX-Conditions](https://github.com/open-astro/weewx-conditions)
 4. Configure JSON URLs under Settings → WeeWX Weather.
 
 ## Usage

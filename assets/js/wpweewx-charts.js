@@ -166,13 +166,18 @@
       };
     }
 
-    new window.Chart(canvas.getContext('2d'), {
+    var chart = new window.Chart(canvas.getContext('2d'), {
       type: type,
       data: {
         labels: Array.isArray(payload.labels) ? payload.labels : [],
         datasets: datasets
       },
       options: options
+    });
+
+    // Ensure charts rendered inside dynamic/card layouts are measured at full width.
+    window.requestAnimationFrame(function () {
+      chart.resize();
     });
   });
 })();

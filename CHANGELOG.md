@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.0
+
+- Redesign admin settings page with card-based layout and professional styling.
+- Rename URL settings: Simple/Main/LCD JSON URL → Conditions Current / Summary / Dataset URL.
+- Add dedicated admin CSS (wpweewx-admin.css) with sections, responsive layout, and dark admin support.
+- Group settings into Data sources, Dataset options, Caching & network, and Display cards.
+- Update Default Source and Test Fetch labels to match (Conditions Current/Summary/Dataset).
+- Add OK/Failed status badge and clearer result table for connection tests.
+
 ## 0.3.0
 
 - Add temperature unit support: site setting (F/C) and per-visitor cookie override.

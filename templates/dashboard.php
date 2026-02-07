@@ -334,12 +334,8 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 		list( $min, $max ) = $series_minmax( $values_list );
 	}
 
-	$axis_labels = null;
-	if ( is_array( $axis_ticks ) && ! empty( $axis_ticks ) ) {
-		$axis_labels = $axis_ticks;
-	} else {
-		$axis_labels = array( $max, $min );
-	}
+	$min_label = $format_value( $min );
+	$max_label = $format_value( $max );
 
 	$payload = null;
 	if ( ! empty( $filtered_series ) ) {
@@ -384,22 +380,28 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 	?>
 	<div class="weewx-weather__chart-card<?php echo 'radar' === $chart_type ? ' weewx-weather__chart-card--radar' : ''; ?>">
 		<div class="weewx-weather__chart-title"><?php echo esc_html( $title ); ?></div>
-		<?php if ( ! empty( $legend_items ) ) : ?>
-			<div class="weewx-weather__chart-legend" role="presentation">
-				<?php foreach ( $legend_items as $legend ) : ?>
-					<span class="weewx-weather__chart-legend-item">
-						<span class="weewx-weather__chart-legend-swatch weewx-weather__chart-legend-swatch--<?php echo esc_attr( $legend['class'] ); ?>"></span>
-						<span class="weewx-weather__chart-legend-label"><?php echo esc_html( $legend['label'] ); ?></span>
-					</span>
-				<?php endforeach; ?>
+		<?php if ( ! empty( $legend_items ) || ! empty( $filtered_series ) ) : ?>
+			<div class="weewx-weather__chart-meta">
+				<?php if ( ! empty( $legend_items ) ) : ?>
+					<div class="weewx-weather__chart-legend" role="presentation">
+						<?php foreach ( $legend_items as $legend ) : ?>
+							<span class="weewx-weather__chart-legend-item">
+								<span class="weewx-weather__chart-legend-swatch weewx-weather__chart-legend-swatch--<?php echo esc_attr( $legend['class'] ); ?>"></span>
+								<span class="weewx-weather__chart-legend-label"><?php echo esc_html( $legend['label'] ); ?></span>
+							</span>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+				<?php if ( ! empty( $filtered_series ) ) : ?>
+					<div class="weewx-weather__chart-minmax">
+						<span><?php echo esc_html__( 'Min', 'wpweewx' ); ?> <?php echo esc_html( $min_label ); ?></span>
+						<span>/</span>
+						<span><?php echo esc_html__( 'Max', 'wpweewx' ); ?> <?php echo esc_html( $max_label ); ?></span>
+					</div>
+				<?php endif; ?>
 			</div>
 		<?php endif; ?>
 		<div class="weewx-weather__chart-body">
-			<div class="weewx-weather__chart-axis">
-				<?php foreach ( $axis_labels as $tick ) : ?>
-					<span><?php echo esc_html( $format_value( $tick ) ); ?></span>
-				<?php endforeach; ?>
-			</div>
 			<div class="weewx-weather__chart-plot">
 				<?php if ( $payload ) : ?>
 					<canvas class="weewx-weather__chart-canvas" aria-hidden="true"></canvas>
@@ -408,10 +410,6 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 					<div class="weewx-weather__chart-empty"><?php esc_html_e( 'No data', 'wpweewx' ); ?></div>
 				<?php endif; ?>
 			</div>
-		</div>
-		<div class="weewx-weather__chart-x">
-			<span><?php echo esc_html( $x_start ); ?></span>
-			<span><?php echo esc_html( $x_end ); ?></span>
 		</div>
 	</div>
 	<?php
