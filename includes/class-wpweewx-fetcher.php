@@ -255,12 +255,23 @@ class WPWeeWX_Fetcher {
 			return $body;
 		}
 
-		$normalized = preg_replace( '/:\s*,/', ': null,', $body );
-		$normalized = preg_replace( '/,\s*,/', ', null,', $normalized );
+		$normalized = $body;
+
+		// Fill obvious missing scalar values: `"key": ,` and `"key": }`.
+		$normalized = preg_replace( '/:\s*,/', ': null,', $normalized );
 		$normalized = preg_replace( '/:\s*(?=[}\]])/', ': null', $normalized );
-		$normalized = preg_replace( '/,\s*(?=[}\]])/', ', null', $normalized );
-		$normalized = preg_replace( '/,\s*]/', ', null]', $normalized );
-		$normalized = preg_replace( '/,\s*}/', ', null}', $normalized );
+
+		// Repeated empty array slots like `,,` become explicit null items.
+		do {
+			$prev = $normalized;
+			$normalized = preg_replace( '/,\s*,/', ', null,', $normalized );
+		} while ( $normalized !== $prev );
+
+		// Trailing commas before object/array close are invalid JSON; strip them.
+		do {
+			$prev = $normalized;
+			$normalized = preg_replace( '/,\s*([}\]])/', '$1', $normalized );
+		} while ( $normalized !== $prev );
 
 		return $normalized;
 	}

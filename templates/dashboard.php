@@ -139,7 +139,7 @@ $lcd_label_map = array(
 	'temperature'     => __( 'Temperature', 'wpweewx' ),
 	'dewpoint'        => __( 'Dew Point', 'wpweewx' ),
 	'dew_point'       => __( 'Dew Point', 'wpweewx' ),
-	'wind_direction'  => __( 'Wind Dir', 'wpweewx' ),
+	'wind_direction'  => __( 'Wind Direction', 'wpweewx' ),
 	'wind_speed'      => __( 'Wind Speed', 'wpweewx' ),
 	'wind_gust'       => __( 'Wind Gust', 'wpweewx' ),
 	'rain'            => __( 'Rain', 'wpweewx' ),
@@ -147,6 +147,22 @@ $lcd_label_map = array(
 	'humidity'        => __( 'Humidity', 'wpweewx' ),
 	'wind_chill'      => __( 'Wind Chill', 'wpweewx' ),
 	'barometer'       => __( 'Barometer', 'wpweewx' ),
+	'sqm'             => __( 'SQM', 'wpweewx' ),
+	'sqmTemp'         => __( 'SQM Temp', 'wpweewx' ),
+	'sqmtemp'         => __( 'SQM Temp', 'wpweewx' ),
+	'sqm_temp'        => __( 'SQM Temp', 'wpweewx' ),
+	'nelm'            => __( 'NELM', 'wpweewx' ),
+	'cdm2'            => __( 'cd/m2', 'wpweewx' ),
+	'nsu'             => __( 'NSU', 'wpweewx' ),
+	'solarAlt'        => __( 'Solar Alt', 'wpweewx' ),
+	'solaralt'        => __( 'Solar Alt', 'wpweewx' ),
+	'solar_alt'       => __( 'Solar Alt', 'wpweewx' ),
+	'lunarAlt'        => __( 'Lunar Alt', 'wpweewx' ),
+	'lunaralt'        => __( 'Lunar Alt', 'wpweewx' ),
+	'lunar_alt'       => __( 'Lunar Alt', 'wpweewx' ),
+	'lunarPhase'      => __( 'Lunar Phase', 'wpweewx' ),
+	'lunarphase'      => __( 'Lunar Phase', 'wpweewx' ),
+	'lunar_phase'     => __( 'Lunar Phase', 'wpweewx' ),
 );
 $lcd_field_label = function( $field ) use ( $lcd_label_map ) {
 	if ( isset( $lcd_label_map[ $field ] ) ) {
@@ -182,6 +198,28 @@ $extract_daily_series = function( $field ) use ( $lcd_field_index, $lcd_daily_re
 	}
 	return $series;
 };
+$extract_daily_series_fallback = function( $fields ) use ( $extract_daily_series ) {
+	$fields = is_array( $fields ) ? $fields : array( $fields );
+	$has_numeric = function( $series ) {
+		if ( ! is_array( $series ) ) {
+			return false;
+		}
+		foreach ( $series as $value ) {
+			if ( is_numeric( $value ) ) {
+				return true;
+			}
+		}
+		return false;
+	};
+	foreach ( $fields as $field ) {
+		$series = $extract_daily_series( $field );
+		if ( $has_numeric( $series ) ) {
+			return $series;
+		}
+	}
+	$first = reset( $fields );
+	return $extract_daily_series( false !== $first ? $first : '' );
+};
 $extract_summary_series = function( $items, $path ) {
 	$series = array();
 	if ( ! is_array( $items ) ) {
@@ -216,6 +254,87 @@ $extract_summary_series_fallback = function( $items, $paths ) use ( $extract_sum
 	}
 	return $extract_summary_series( $items, (string) $paths[0] );
 };
+$build_summary_series_set = function( $items, $roots ) use ( $extract_summary_series_fallback, $series_has_numeric ) {
+	$roots = is_array( $roots ) ? array_values( array_filter( $roots ) ) : array( (string) $roots );
+	$build_paths = function( $suffix ) use ( $roots ) {
+		$paths = array();
+		foreach ( $roots as $root ) {
+			$paths[] = '' === $suffix ? $root : $root . '.' . $suffix;
+		}
+		return $paths;
+	};
+
+	$min = $extract_summary_series_fallback( $items, $build_paths( 'min' ) );
+	$avg = $extract_summary_series_fallback( $items, $build_paths( 'avg' ) );
+	$max = $extract_summary_series_fallback( $items, $build_paths( 'max' ) );
+
+	if ( $series_has_numeric( $min ) || $series_has_numeric( $avg ) || $series_has_numeric( $max ) ) {
+		return array(
+			array( 'values' => $min, 'class' => 'secondary', 'label' => __( 'Min', 'wpweewx' ) ),
+			array( 'values' => $avg, 'class' => 'primary', 'label' => __( 'Avg', 'wpweewx' ) ),
+			array( 'values' => $max, 'class' => 'tertiary', 'label' => __( 'Max', 'wpweewx' ) ),
+		);
+	}
+
+	$single = $extract_summary_series_fallback(
+		$items,
+		array_merge(
+			$build_paths( 'value' ),
+			$build_paths( 'last' ),
+			$build_paths( '' )
+		)
+	);
+	if ( $series_has_numeric( $single ) ) {
+		return array(
+			array( 'values' => $single, 'class' => 'primary', 'label' => __( 'Value', 'wpweewx' ) ),
+		);
+	}
+
+	return array();
+};
+$sqm_metrics = array(
+	array(
+		'title'         => __( 'SQM', 'wpweewx' ),
+		'daily_fields'  => array( 'sqm' ),
+		'summary_roots' => array( 'sqm' ),
+	),
+	array(
+		'title'         => __( 'SQM Temp', 'wpweewx' ),
+		'daily_fields'  => array( 'sqmTemp', 'sqm_temp' ),
+		'summary_roots' => array( 'sqmTemp', 'sqm_temp' ),
+	),
+	array(
+		'title'         => __( 'NELM', 'wpweewx' ),
+		'daily_fields'  => array( 'nelm' ),
+		'summary_roots' => array( 'nelm' ),
+	),
+	array(
+		'title'         => __( 'cd/m2', 'wpweewx' ),
+		'daily_fields'  => array( 'cdm2', 'cd_m2' ),
+		'summary_roots' => array( 'cdm2', 'cd_m2' ),
+		'value_format'  => 'sci',
+	),
+	array(
+		'title'         => __( 'NSU', 'wpweewx' ),
+		'daily_fields'  => array( 'nsu' ),
+		'summary_roots' => array( 'nsu' ),
+	),
+	array(
+		'title'         => __( 'Solar Alt', 'wpweewx' ),
+		'daily_fields'  => array( 'solarAlt', 'solar_alt' ),
+		'summary_roots' => array( 'solarAlt', 'solar_alt' ),
+	),
+	array(
+		'title'         => __( 'Lunar Alt', 'wpweewx' ),
+		'daily_fields'  => array( 'lunarAlt', 'lunar_alt' ),
+		'summary_roots' => array( 'lunarAlt', 'lunar_alt' ),
+	),
+	array(
+		'title'         => __( 'Lunar Phase', 'wpweewx' ),
+		'daily_fields'  => array( 'lunarPhase', 'lunar_phase' ),
+		'summary_roots' => array( 'lunarPhase', 'lunar_phase' ),
+	),
+);
 $build_labels_from_epochs = function( $epochs, $format_callback ) {
 	if ( ! is_array( $epochs ) || empty( $epochs ) ) {
 		return array();
@@ -272,6 +391,12 @@ $format_value = function( $value ) {
 	}
 	return number_format_i18n( (float) $value, 2 );
 };
+$format_value_sci = function( $value ) {
+	if ( ! is_numeric( $value ) ) {
+		return '—';
+	}
+	return sprintf( '%.3e', (float) $value );
+};
 $format_time_only = function( $value ) {
 	if ( ! is_numeric( $value ) ) {
 		return '—';
@@ -304,9 +429,16 @@ $summary_range = function( $items ) {
 		isset( $last['period_end_epoch'] ) ? $last['period_end_epoch'] : null,
 	);
 };
-$render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = null, $chart_options = array() ) use ( $format_value, $series_has_numeric, $series_minmax ) {
+$render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = null, $chart_options = array() ) use ( $format_value, $format_value_sci, $series_has_numeric, $series_minmax ) {
 	$chart_type = isset( $chart_options['type'] ) ? $chart_options['type'] : 'line';
+	$show_series_labels = ! empty( $chart_options['show_series_labels'] );
 	$series_list = is_array( $series_list ) ? $series_list : array();
+	$format_value_fn = function( $value ) use ( $format_value, $format_value_sci, $chart_options ) {
+		if ( isset( $chart_options['value_format'] ) && 'sci' === $chart_options['value_format'] ) {
+			return $format_value_sci( $value );
+		}
+		return $format_value( $value );
+	};
 	$filtered_series = array();
 	foreach ( $series_list as $item ) {
 		if ( ! is_array( $item ) ) {
@@ -334,8 +466,8 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 		list( $min, $max ) = $series_minmax( $values_list );
 	}
 
-	$min_label = $format_value( $min );
-	$max_label = $format_value( $max );
+	$min_label = $format_value_fn( $min );
+	$max_label = $format_value_fn( $max );
 
 	$payload = null;
 	if ( ! empty( $filtered_series ) ) {
@@ -352,24 +484,28 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 		$datasets = array();
 		$legend_items = array();
 		foreach ( $filtered_series as $item ) {
+			list( $series_min, $series_max ) = $series_minmax( array( $item['values'] ) );
 			$datasets[] = array(
 				'data'  => $item['values'],
 				'class' => $item['class'],
 				'type'  => $item['type'],
 				'label' => $item['label'],
 			);
-			if ( ! empty( $item['label'] ) ) {
-				$legend_items[] = array(
-					'label' => $item['label'],
-					'class' => $item['class'],
-				);
-			}
+			$legend_items[] = array(
+				'label'     => isset( $item['label'] ) ? $item['label'] : '',
+				'class'     => $item['class'],
+				'min_label' => $format_value_fn( $series_min ),
+				'max_label' => $format_value_fn( $series_max ),
+			);
 		}
 		$payload = array(
 			'labels'   => $labels,
 			'datasets' => $datasets,
 			'type'     => isset( $chart_options['type'] ) ? $chart_options['type'] : 'line',
 		);
+		if ( isset( $chart_options['value_format'] ) ) {
+			$payload['valueFormat'] = (string) $chart_options['value_format'];
+		}
 		if ( isset( $chart_options['y_min'] ) && is_numeric( $chart_options['y_min'] ) ) {
 			$payload['yMin'] = (float) $chart_options['y_min'];
 		}
@@ -380,25 +516,29 @@ $render_chart = function( $title, $series_list, $x_start, $x_end, $axis_ticks = 
 	?>
 	<div class="weewx-weather__chart-card<?php echo 'radar' === $chart_type ? ' weewx-weather__chart-card--radar' : ''; ?>">
 		<div class="weewx-weather__chart-title"><?php echo esc_html( $title ); ?></div>
-		<?php if ( ! empty( $legend_items ) || ! empty( $filtered_series ) ) : ?>
-			<div class="weewx-weather__chart-meta">
-				<?php if ( ! empty( $legend_items ) ) : ?>
-					<div class="weewx-weather__chart-legend" role="presentation">
-						<?php foreach ( $legend_items as $legend ) : ?>
-							<span class="weewx-weather__chart-legend-item">
-								<span class="weewx-weather__chart-legend-swatch weewx-weather__chart-legend-swatch--<?php echo esc_attr( $legend['class'] ); ?>"></span>
+		<?php if ( ! empty( $legend_items ) ) : ?>
+			<div class="weewx-weather__chart-series" role="presentation">
+				<?php foreach ( $legend_items as $legend ) : ?>
+					<div class="weewx-weather__chart-series-row">
+						<span class="weewx-weather__chart-legend-item">
+							<span class="weewx-weather__chart-legend-swatch weewx-weather__chart-legend-swatch--<?php echo esc_attr( $legend['class'] ); ?>"></span>
+							<?php if ( $show_series_labels && ! empty( $legend['label'] ) ) : ?>
 								<span class="weewx-weather__chart-legend-label"><?php echo esc_html( $legend['label'] ); ?></span>
-							</span>
-						<?php endforeach; ?>
+							<?php endif; ?>
+						</span>
+						<span class="weewx-weather__chart-minmax">
+							<span><?php echo esc_html__( 'Min', 'wpweewx' ); ?> <?php echo esc_html( $legend['min_label'] ); ?></span>
+							<span>/</span>
+							<span><?php echo esc_html__( 'Max', 'wpweewx' ); ?> <?php echo esc_html( $legend['max_label'] ); ?></span>
+						</span>
 					</div>
-				<?php endif; ?>
-				<?php if ( ! empty( $filtered_series ) ) : ?>
-					<div class="weewx-weather__chart-minmax">
-						<span><?php echo esc_html__( 'Min', 'wpweewx' ); ?> <?php echo esc_html( $min_label ); ?></span>
-						<span>/</span>
-						<span><?php echo esc_html__( 'Max', 'wpweewx' ); ?> <?php echo esc_html( $max_label ); ?></span>
-					</div>
-				<?php endif; ?>
+				<?php endforeach; ?>
+			</div>
+		<?php elseif ( ! empty( $filtered_series ) ) : ?>
+			<div class="weewx-weather__chart-minmax">
+				<span><?php echo esc_html__( 'Min', 'wpweewx' ); ?> <?php echo esc_html( $min_label ); ?></span>
+				<span>/</span>
+				<span><?php echo esc_html__( 'Max', 'wpweewx' ); ?> <?php echo esc_html( $max_label ); ?></span>
 			</div>
 		<?php endif; ?>
 		<div class="weewx-weather__chart-body">
@@ -418,6 +558,8 @@ $lcd_current = array();
 if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_datasheet']['current'] ) ) {
 	$lcd_current = $lcd_data['lcd_datasheet']['current'];
 }
+$has_lcd_datasheet = ! empty( $lcd_current ) || $lcd_latest || ! empty( $lcd_daily_rows ) || ! empty( $lcd_weekly ) || ! empty( $lcd_monthly ) || ! empty( $lcd_yearly );
+$show_sqm = (int) WPWeeWX_Settings::get( 'wpweewx_show_sqm' ) === 1;
 ?>
 
 <div class="weewx-weather weewx-weather--<?php echo esc_attr( $theme ); ?>">
@@ -444,8 +586,8 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 		</div>
 	</div>
 
-	<div class="weewx-weather__tabs" data-tabs="<?php echo esc_attr( ( $lcd_latest || ! empty( $lcd_daily_rows ) || ! empty( $lcd_weekly ) || ! empty( $lcd_monthly ) || ! empty( $lcd_yearly ) ) && 'lcd' === $source ? $lcd_tabs_id : $tabs_id ); ?>">
-		<?php if ( 'lcd' === $source && ( $lcd_latest || ! empty( $lcd_daily_rows ) || ! empty( $lcd_weekly ) || ! empty( $lcd_monthly ) || ! empty( $lcd_yearly ) ) ) : ?>
+	<div class="weewx-weather__tabs" data-tabs="<?php echo esc_attr( $has_lcd_datasheet && 'lcd' === $source ? $lcd_tabs_id : $tabs_id ); ?>">
+		<?php if ( 'lcd' === $source && $has_lcd_datasheet ) : ?>
 			<div class="weewx-weather__tab-buttons" role="tablist" data-tabs="<?php echo esc_attr( $lcd_tabs_id ); ?>">
 				<button type="button" class="weewx-weather__tab-button is-active" data-tab="<?php echo esc_attr( $lcd_tabs_id . '-latest' ); ?>" role="tab" aria-selected="true">
 					<?php esc_html_e( 'Latest', 'wpweewx' ); ?>
@@ -608,7 +750,7 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 				<?php endif; ?>
 			</div>
 		</div>
-		<?php if ( $lcd_latest || ! empty( $lcd_daily_rows ) || ! empty( $lcd_weekly ) || ! empty( $lcd_monthly ) || ! empty( $lcd_yearly ) ) : ?>
+		<?php if ( $has_lcd_datasheet ) : ?>
 			<?php if ( 'lcd' !== $source ) : ?>
 				<div class="weewx-weather__tabs weewx-weather__tabs--lcd" data-tabs="<?php echo esc_attr( $lcd_tabs_id ); ?>">
 					<div class="weewx-weather__tab-buttons" role="tablist" data-tabs="<?php echo esc_attr( $lcd_tabs_id ); ?>">
@@ -635,8 +777,30 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 						<?php
 						if ( $lcd_latest ) {
 							WPWeeWX_Renderer::metric_row( __( 'Timestamp', 'wpweewx' ), $format_epoch( $lcd_latest['timestamp_epoch'] ?? null ) );
+							$lcd_latest_excluded_fields = array(
+								'sqm',
+								'sqmTemp',
+								'sqmtemp',
+								'sqm_temp',
+								'nelm',
+								'cdm2',
+								'cd_m2',
+								'nsu',
+								'solarAlt',
+								'solaralt',
+								'solar_alt',
+								'lunarAlt',
+								'lunaralt',
+								'lunar_alt',
+								'lunarPhase',
+								'lunarphase',
+								'lunar_phase',
+							);
 							foreach ( $lcd_latest_fields as $field ) {
 								if ( 'timestamp_epoch' === $field ) {
+									continue;
+								}
+								if ( in_array( $field, $lcd_latest_excluded_fields, true ) ) {
 									continue;
 								}
 								WPWeeWX_Renderer::metric_row( $lcd_field_label( $field ), $format_lcd( $lcd_latest[ $field ] ?? null, $field ) );
@@ -713,7 +877,7 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 
 								list( $wind_dir_labels, $wind_dir_distribution ) = $bin_wind_dir( $wind_dir_series );
 								$render_chart(
-									__( 'Wind Dir', 'wpweewx' ),
+									__( 'Wind Direction', 'wpweewx' ),
 									array(
 										array( 'values' => $wind_dir_distribution, 'class' => 'primary', 'label' => __( 'Direction', 'wpweewx' ) ),
 									),
@@ -735,7 +899,12 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 									$time_start,
 									$time_end,
 									null,
-									$daily_chart_options
+									array_merge(
+										$daily_chart_options,
+										array(
+											'show_series_labels' => true,
+										)
+									)
 								);
 
 								$render_chart(
@@ -837,7 +1006,12 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 									$weekly_start_label,
 									$weekly_end_label,
 									null,
-									$weekly_chart_options
+									array_merge(
+										$weekly_chart_options,
+										array(
+											'show_series_labels' => true,
+										)
+									)
 								);
 
 								if ( $series_has_numeric( $dewpoint_min ) || $series_has_numeric( $dewpoint_avg ) || $series_has_numeric( $dewpoint_max ) ) {
@@ -912,7 +1086,7 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 
 								list( $weekly_wind_labels, $weekly_wind_bins ) = $bin_wind_dir( $wind_dir_series );
 								$render_chart(
-									__( 'Wind Dir (avg)', 'wpweewx' ),
+									__( 'Wind Direction (avg)', 'wpweewx' ),
 									array(
 										array( 'values' => $weekly_wind_bins, 'class' => 'primary', 'label' => __( 'Direction', 'wpweewx' ) ),
 									),
@@ -1002,7 +1176,12 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 									$monthly_start_label,
 									$monthly_end_label,
 									null,
-									$monthly_chart_options
+									array_merge(
+										$monthly_chart_options,
+										array(
+											'show_series_labels' => true,
+										)
+									)
 								);
 
 								if ( $series_has_numeric( $dewpoint_min ) || $series_has_numeric( $dewpoint_avg ) || $series_has_numeric( $dewpoint_max ) ) {
@@ -1077,7 +1256,7 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 
 								list( $monthly_wind_labels, $monthly_wind_bins ) = $bin_wind_dir( $wind_dir_series );
 								$render_chart(
-									__( 'Wind Dir (avg)', 'wpweewx' ),
+									__( 'Wind Direction (avg)', 'wpweewx' ),
 									array(
 										array( 'values' => $monthly_wind_bins, 'class' => 'primary', 'label' => __( 'Direction', 'wpweewx' ) ),
 									),
@@ -1167,7 +1346,12 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 									$yearly_start_label,
 									$yearly_end_label,
 									null,
-									$yearly_chart_options
+									array_merge(
+										$yearly_chart_options,
+										array(
+											'show_series_labels' => true,
+										)
+									)
 								);
 
 								if ( $series_has_numeric( $dewpoint_min ) || $series_has_numeric( $dewpoint_avg ) || $series_has_numeric( $dewpoint_max ) ) {
@@ -1242,7 +1426,7 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 
 								list( $yearly_wind_labels, $yearly_wind_bins ) = $bin_wind_dir( $wind_dir_series );
 								$render_chart(
-									__( 'Wind Dir (avg)', 'wpweewx' ),
+									__( 'Wind Direction (avg)', 'wpweewx' ),
 									array(
 										array( 'values' => $yearly_wind_bins, 'class' => 'primary', 'label' => __( 'Direction', 'wpweewx' ) ),
 									),
@@ -1282,12 +1466,202 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 							<?php esc_html_e( 'No yearly summaries available.', 'wpweewx' ); ?>
 						<?php endif; ?>
 					</div>
+
 					<?php
 					$lcd_html = ob_get_clean();
 					?>
 			<div class="weewx-weather__full-span">
 				<?php WPWeeWX_Renderer::card( __( 'LCD Datasheet', 'wpweewx' ), $lcd_html ); ?>
 			</div>
+			<?php
+			$has_sqm_current = null !== WPWeeWX_Parser::get( $lcd_current, 'sqm' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'sqmTemp' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'nelm' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'cdm2' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'nsu' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'solarAlt' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'lunarAlt' ) ||
+				null !== WPWeeWX_Parser::get( $lcd_current, 'lunarPhase' );
+			$has_sqm_sections = $show_sqm && ( $has_sqm_current || ! empty( $lcd_daily_recent ) || ! empty( $lcd_weekly ) || ! empty( $lcd_monthly ) || ! empty( $lcd_yearly ) );
+			if ( $has_sqm_sections ) :
+				ob_start();
+				?>
+				<div class="weewx-weather__tab-panel is-active" data-tab-panel="<?php echo esc_attr( $lcd_tabs_id . '-latest' ); ?>" role="tabpanel">
+					<?php if ( $has_sqm_current ) : ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'SQM', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'sqm' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'SQM Temp', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'sqmTemp' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'NELM', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'nelm' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'cd/m2', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'cdm2' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'NSU', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'nsu' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'Solar Alt', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'solarAlt' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'Lunar Alt', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'lunarAlt' ) ); ?>
+						<?php WPWeeWX_Renderer::metric_row( __( 'Lunar Phase', 'wpweewx' ), WPWeeWX_Renderer::display_value( $lcd_current, 'lunarPhase' ) ); ?>
+					<?php else : ?>
+						<?php esc_html_e( 'No SQM latest data available.', 'wpweewx' ); ?>
+					<?php endif; ?>
+				</div>
+				<div class="weewx-weather__tab-panel" data-tab-panel="<?php echo esc_attr( $lcd_tabs_id . '-daily' ); ?>" role="tabpanel">
+					<div class="weewx-weather__chart-grid">
+						<?php
+						$sqm_daily_has_chart = false;
+						$sqm_daily_timestamps = $extract_daily_series( 'timestamp_epoch' );
+						$sqm_daily_labels = $build_labels_from_epochs( $sqm_daily_timestamps, $format_time_only );
+						$sqm_daily_chart_options = array(
+							'labels' => $sqm_daily_labels,
+						);
+						$sqm_daily_start = $format_time_only( $daily_start );
+						$sqm_daily_end = $format_time_only( $daily_end );
+						foreach ( $sqm_metrics as $metric ) {
+							$sqm_daily_series = $extract_daily_series_fallback( $metric['daily_fields'] );
+							if ( ! $series_has_numeric( $sqm_daily_series ) ) {
+								continue;
+							}
+							$chart_options = $sqm_daily_chart_options;
+							if ( ! empty( $metric['value_format'] ) ) {
+								$chart_options['value_format'] = $metric['value_format'];
+							}
+							$sqm_daily_has_chart = true;
+							$render_chart(
+								$metric['title'],
+								array(
+									array( 'values' => $sqm_daily_series, 'class' => 'primary', 'label' => __( 'Value', 'wpweewx' ) ),
+								),
+								$sqm_daily_start,
+								$sqm_daily_end,
+								null,
+								$chart_options
+							);
+						}
+						if ( ! $sqm_daily_has_chart ) {
+							esc_html_e( 'No SQM daily captures available.', 'wpweewx' );
+						}
+						?>
+					</div>
+				</div>
+
+				<div class="weewx-weather__tab-panel" data-tab-panel="<?php echo esc_attr( $lcd_tabs_id . '-weekly' ); ?>" role="tabpanel">
+					<div class="weewx-weather__chart-grid">
+						<?php
+						$sqm_weekly_has_chart = false;
+						list( $sqm_weekly_start, $sqm_weekly_end ) = $summary_range( $lcd_weekly );
+						$sqm_weekly_labels = $build_labels_from_epochs(
+							$extract_summary_series_fallback( $lcd_weekly, array( 'period_start_epoch', 'period_end_epoch' ) ),
+							$format_date_only
+						);
+						$sqm_weekly_chart_options = array(
+							'labels'             => $sqm_weekly_labels,
+							'show_series_labels' => true,
+						);
+						foreach ( $sqm_metrics as $metric ) {
+							$sqm_weekly_series = $build_summary_series_set( $lcd_weekly, $metric['summary_roots'] );
+							if ( empty( $sqm_weekly_series ) ) {
+								continue;
+							}
+							$chart_options = $sqm_weekly_chart_options;
+							if ( ! empty( $metric['value_format'] ) ) {
+								$chart_options['value_format'] = $metric['value_format'];
+							}
+							$sqm_weekly_has_chart = true;
+							$render_chart(
+								$metric['title'],
+								$sqm_weekly_series,
+								$format_date_only( $sqm_weekly_start ),
+								$format_date_only( $sqm_weekly_end ),
+								null,
+								$chart_options
+							);
+						}
+						if ( ! $sqm_weekly_has_chart ) {
+							esc_html_e( 'No SQM weekly summaries available.', 'wpweewx' );
+						}
+						?>
+					</div>
+				</div>
+
+				<div class="weewx-weather__tab-panel" data-tab-panel="<?php echo esc_attr( $lcd_tabs_id . '-monthly' ); ?>" role="tabpanel">
+					<div class="weewx-weather__chart-grid">
+						<?php
+						$sqm_monthly_has_chart = false;
+						list( $sqm_monthly_start, $sqm_monthly_end ) = $summary_range( $lcd_monthly );
+						$sqm_monthly_labels = $build_labels_from_epochs(
+							$extract_summary_series_fallback( $lcd_monthly, array( 'period_start_epoch', 'period_end_epoch' ) ),
+							$format_date_only
+						);
+						$sqm_monthly_chart_options = array(
+							'labels'             => $sqm_monthly_labels,
+							'show_series_labels' => true,
+						);
+						foreach ( $sqm_metrics as $metric ) {
+							$sqm_monthly_series = $build_summary_series_set( $lcd_monthly, $metric['summary_roots'] );
+							if ( empty( $sqm_monthly_series ) ) {
+								continue;
+							}
+							$chart_options = $sqm_monthly_chart_options;
+							if ( ! empty( $metric['value_format'] ) ) {
+								$chart_options['value_format'] = $metric['value_format'];
+							}
+							$sqm_monthly_has_chart = true;
+							$render_chart(
+								$metric['title'],
+								$sqm_monthly_series,
+								$format_date_only( $sqm_monthly_start ),
+								$format_date_only( $sqm_monthly_end ),
+								null,
+								$chart_options
+							);
+						}
+						if ( ! $sqm_monthly_has_chart ) {
+							esc_html_e( 'No SQM monthly summaries available.', 'wpweewx' );
+						}
+						?>
+					</div>
+				</div>
+
+				<div class="weewx-weather__tab-panel" data-tab-panel="<?php echo esc_attr( $lcd_tabs_id . '-yearly' ); ?>" role="tabpanel">
+					<div class="weewx-weather__chart-grid">
+						<?php
+						$sqm_yearly_has_chart = false;
+						list( $sqm_yearly_start, $sqm_yearly_end ) = $summary_range( $lcd_yearly );
+						$sqm_yearly_labels = $build_labels_from_epochs(
+							$extract_summary_series_fallback( $lcd_yearly, array( 'period_start_epoch', 'period_end_epoch' ) ),
+							$format_date_only
+						);
+						$sqm_yearly_chart_options = array(
+							'labels'             => $sqm_yearly_labels,
+							'show_series_labels' => true,
+						);
+						foreach ( $sqm_metrics as $metric ) {
+							$sqm_yearly_series = $build_summary_series_set( $lcd_yearly, $metric['summary_roots'] );
+							if ( empty( $sqm_yearly_series ) ) {
+								continue;
+							}
+							$chart_options = $sqm_yearly_chart_options;
+							if ( ! empty( $metric['value_format'] ) ) {
+								$chart_options['value_format'] = $metric['value_format'];
+							}
+							$sqm_yearly_has_chart = true;
+							$render_chart(
+								$metric['title'],
+								$sqm_yearly_series,
+								$format_date_only( $sqm_yearly_start ),
+								$format_date_only( $sqm_yearly_end ),
+								null,
+								$chart_options
+							);
+						}
+						if ( ! $sqm_yearly_has_chart ) {
+							esc_html_e( 'No SQM yearly summaries available.', 'wpweewx' );
+						}
+						?>
+					</div>
+				</div>
+				<?php
+				$sqm_main_html = ob_get_clean();
+				?>
+				<div class="weewx-weather__full-span">
+					<?php WPWeeWX_Renderer::card( __( 'SQM', 'wpweewx' ), $sqm_main_html ); ?>
+				</div>
+			<?php endif; ?>
 					<script>
 						(function () {
 							var tabsId = <?php echo json_encode( $lcd_tabs_id ); ?>;
@@ -1298,16 +1672,28 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 							var buttons = root.querySelectorAll('.weewx-weather__tab-button');
 							var widget = root.closest('.weewx-weather');
 							var panels = widget ? widget.querySelectorAll('[data-tab-panel^="' + tabsId + '-"]') : [];
+							function syncPanels(target, activeButton) {
+								if (!target) {
+									return;
+								}
+								buttons.forEach(function (btn) {
+									var isActive = btn === activeButton || btn.getAttribute('data-tab') === target;
+									btn.classList.toggle('is-active', isActive);
+									btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+								});
+								panels.forEach(function (panel) {
+									panel.classList.toggle('is-active', panel.getAttribute('data-tab-panel') === target);
+								});
+							}
+
+							var initial = root.querySelector('.weewx-weather__tab-button.is-active');
+							if (initial) {
+								syncPanels(initial.getAttribute('data-tab'), initial);
+							}
+
 							buttons.forEach(function (button) {
 								button.addEventListener('click', function () {
-									var target = button.getAttribute('data-tab');
-									buttons.forEach(function (btn) {
-										btn.classList.toggle('is-active', btn === button);
-										btn.setAttribute('aria-selected', btn === button ? 'true' : 'false');
-									});
-									panels.forEach(function (panel) {
-										panel.classList.toggle('is-active', panel.getAttribute('data-tab-panel') === target);
-									});
+									syncPanels(button.getAttribute('data-tab'), button);
 								});
 							});
 						})();
@@ -1322,16 +1708,28 @@ if ( isset( $lcd_data['lcd_datasheet']['current'] ) && is_array( $lcd_data['lcd_
 			}
 			var buttons = root.querySelectorAll('.weewx-weather__tab-button');
 			var panels = root.querySelectorAll('.weewx-weather__tab-panel');
+			function syncPanels(target, activeButton) {
+				if (!target) {
+					return;
+				}
+				buttons.forEach(function (btn) {
+					var isActive = btn === activeButton || btn.getAttribute('data-tab') === target;
+					btn.classList.toggle('is-active', isActive);
+					btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+				});
+				panels.forEach(function (panel) {
+					panel.classList.toggle('is-active', panel.getAttribute('data-tab-panel') === target);
+				});
+			}
+
+			var initial = root.querySelector('.weewx-weather__tab-button.is-active');
+			if (initial) {
+				syncPanels(initial.getAttribute('data-tab'), initial);
+			}
+
 			buttons.forEach(function (button) {
 				button.addEventListener('click', function () {
-					var target = button.getAttribute('data-tab');
-					buttons.forEach(function (btn) {
-						btn.classList.toggle('is-active', btn === button);
-						btn.setAttribute('aria-selected', btn === button ? 'true' : 'false');
-					});
-					panels.forEach(function (panel) {
-						panel.classList.toggle('is-active', panel.getAttribute('data-tab-panel') === target);
-					});
+					syncPanels(button.getAttribute('data-tab'), button);
 				});
 			});
 		})();

@@ -66,7 +66,7 @@ class WPWeeWX_Renderer {
 				$number_raw = $value['value'];
 				if ( is_numeric( $number_raw ) ) {
 					$converted = self::convert_temperature_if_needed( (float) $number_raw, $unit, $temp_unit, $path );
-					$number = number_format_i18n( $converted['value'], 2 );
+					$number = self::format_number_for_path( $converted['value'], $path, $unit );
 					$unit_display = $converted['unit'];
 					return trim( $number . ( $unit_display ? ' ' . $unit_display : '' ) );
 				}
@@ -82,7 +82,7 @@ class WPWeeWX_Renderer {
 		if ( is_scalar( $value ) ) {
 			if ( is_numeric( $value ) ) {
 				$converted = self::convert_temperature_if_needed( (float) $value, '', $temp_unit, $path );
-				$number = number_format_i18n( $converted['value'], 2 );
+				$number = self::format_number_for_path( $converted['value'], $path, '' );
 				return trim( $number . ( $converted['unit'] ? ' ' . $converted['unit'] : '' ) );
 			}
 			return (string) $value;
@@ -130,6 +130,46 @@ class WPWeeWX_Renderer {
 			'value' => $value,
 			'unit'  => strtoupper( $target ),
 		);
+	}
+
+	/**
+	 * Determine display precision based on path or units.
+	 *
+	 * @param string $path Dot path.
+	 * @param string $unit Unit string from data.
+	 * @return int
+	 */
+	private static function precision_for_path( $path, $unit ) {
+		$path = strtolower( (string) $path );
+		$unit = strtolower( (string) $unit );
+		if ( false !== strpos( $path, 'cdm2' ) || false !== strpos( $path, 'cd_m2' ) || false !== strpos( $unit, 'cd/m2' ) ) {
+			return 6;
+		}
+		return 2;
+	}
+
+	/**
+	 * Format numbers with path-aware precision (scientific for tiny cd/m2).
+	 *
+	 * @param float  $value Numeric value.
+	 * @param string $path Dot path.
+	 * @param string $unit Unit string from data.
+	 * @return string
+	 */
+	private static function format_number_for_path( $value, $path, $unit ) {
+		$path = strtolower( (string) $path );
+		$unit = strtolower( (string) $unit );
+		$is_cdm2 = false !== strpos( $path, 'cdm2' ) || false !== strpos( $path, 'cd_m2' ) || false !== strpos( $unit, 'cd/m2' );
+		if ( $is_cdm2 ) {
+			$abs_value = abs( (float) $value );
+			if ( 0.0 < $abs_value && $abs_value < 0.001 ) {
+				return sprintf( '%.3e', $value );
+			}
+			return number_format_i18n( $value, 6 );
+		}
+
+		$precision = self::precision_for_path( $path, $unit );
+		return number_format_i18n( $value, $precision );
 	}
 
 	/**

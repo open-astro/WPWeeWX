@@ -159,6 +159,15 @@ class WPWeeWX_Admin {
 								</td>
 							</tr>
 							<tr>
+								<th scope="row"><?php esc_html_e( 'Show SQM Data', 'wpweewx' ); ?></th>
+								<td>
+									<label>
+										<input type="checkbox" name="wpweewx_show_sqm" value="1" <?php checked( WPWeeWX_Settings::get( 'wpweewx_show_sqm' ), 1 ); ?> />
+										<?php esc_html_e( 'Display SQM metrics and charts (if available).', 'wpweewx' ); ?>
+									</label>
+								</td>
+							</tr>
+							<tr>
 								<th scope="row"><?php esc_html_e( 'Default Source', 'wpweewx' ); ?></th>
 								<td>
 									<select name="wpweewx_default_source">

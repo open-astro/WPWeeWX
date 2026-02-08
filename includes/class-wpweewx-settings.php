@@ -28,6 +28,7 @@ class WPWeeWX_Settings {
 		'wpweewx_http_timeout'    => 8,
 		'wpweewx_default_view'    => 'dashboard',
 		'wpweewx_default_theme'   => 'auto',
+		'wpweewx_show_sqm'        => 1,
 	);
 
 	/**
@@ -153,6 +154,16 @@ class WPWeeWX_Settings {
 				'default'           => self::$defaults['wpweewx_default_theme'],
 			)
 		);
+
+		register_setting(
+			'wpweewx_settings',
+			'wpweewx_show_sqm',
+			array(
+				'type'              => 'integer',
+				'sanitize_callback' => array( __CLASS__, 'sanitize_bool_int' ),
+				'default'           => self::$defaults['wpweewx_show_sqm'],
+			)
+		);
 	}
 
 	/**
@@ -222,6 +233,16 @@ class WPWeeWX_Settings {
 	public static function sanitize_positive_int( $value ) {
 		$value = is_numeric( $value ) ? (int) $value : 0;
 		return ( $value > 0 ) ? $value : 1;
+	}
+
+	/**
+	 * Sanitize boolean-ish ints (0/1).
+	 *
+	 * @param mixed $value Value.
+	 * @return int
+	 */
+	public static function sanitize_bool_int( $value ) {
+		return ! empty( $value ) ? 1 : 0;
 	}
 
 	/**

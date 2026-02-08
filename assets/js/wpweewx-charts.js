@@ -88,8 +88,11 @@
         borderColor: color,
         backgroundColor: 'transparent',
         borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 3,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        pointHitRadius: 10,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
         tension: 0.35,
         spanGaps: true
       };
@@ -97,6 +100,9 @@
       if (datasetType === 'bar') {
         config.backgroundColor = withAlpha(color, 0.35);
         config.borderWidth = 0;
+        config.pointRadius = 0;
+        config.pointHoverRadius = 0;
+        config.pointHitRadius = 0;
         config.barPercentage = 0.6;
         config.categoryPercentage = 0.8;
       } else if (datasetType === 'radar') {
@@ -119,13 +125,31 @@
     var tickColor = styles.getPropertyValue('--weewx-muted').trim() || '#566173';
     var gridColor = styles.getPropertyValue('--weewx-border').trim() || '#e5e7eb';
 
+    var sciPrecision = 3;
+    function formatScientific(value) {
+      var num = typeof value === 'number' ? value : parseFloat(value);
+      if (!isFinite(num)) {
+        return value;
+      }
+      return num.toExponential(sciPrecision);
+    }
+    var useScientific = payload.valueFormat === 'sci';
+
     var options = {
       responsive: true,
       maintainAspectRatio: false,
       animation: true,
       plugins: {
         legend: { display: false },
-        tooltip: { enabled: true }
+        tooltip: {
+          enabled: true,
+          callbacks: useScientific ? {
+            label: function (context) {
+              var label = context.dataset && context.dataset.label ? context.dataset.label + ': ' : '';
+              return label + formatScientific(context.parsed && context.parsed.y != null ? context.parsed.y : context.parsed);
+            }
+          } : {}
+        }
       },
       scales: type === 'radar' ? {} : {
         x: {
@@ -141,7 +165,10 @@
           display: true,
           ticks: {
             color: tickColor,
-            maxTicksLimit: 3
+            maxTicksLimit: 3,
+            callback: useScientific ? function (value) {
+              return formatScientific(value);
+            } : undefined
           },
           grid: {
             color: gridColor
@@ -151,7 +178,11 @@
         }
       },
       elements: {
-        point: { radius: 0 }
+        point: {
+          radius: 2,
+          hoverRadius: 4,
+          hitRadius: 10
+        }
       }
     };
 
@@ -161,7 +192,13 @@
           angleLines: { color: gridColor },
           grid: { color: gridColor },
           pointLabels: { color: tickColor },
-          ticks: { color: tickColor, maxTicksLimit: 4 }
+          ticks: {
+            color: tickColor,
+            maxTicksLimit: 4,
+            callback: useScientific ? function (value) {
+              return formatScientific(value);
+            } : undefined
+          }
         }
       };
     }

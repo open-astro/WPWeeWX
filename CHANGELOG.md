@@ -1,6 +1,22 @@
 # Changelog
+All notable changes to WPWeeWX will be documented in this file.
 
-All notable changes to this project are documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+## 0.5.0
+
+- Add SQM (sky quality) support: optional display of SQM metrics and charts when data is available.
+- Add admin setting "Show SQM Data" (checkbox) and `wpweewx_show_sqm` option with boolean sanitization.
+- Add dashboard SQM metrics: SQM, SQM Temp, NELM, cd/m², NSU, Solar Alt, Lunar Alt, Lunar Phase (labels, series, charts).
+- Add path-aware number formatting: higher precision and scientific notation for cd/m² (dark sky) values.
+- Improve JSON normalization in fetcher: handle missing scalars, strip trailing commas instead of inserting null.
+- Add `extract_daily_series_fallback` and `build_summary_series_set` for dashboard chart data.
+- Chart options: support `value_format: sci` and series labels; Chart.js axis uses scientific format when set.
+- Dashboard chart layout: chart-series wrapper, responsive grid (2-col at 1024px, 1-col at 768px), stacked header on small screens.
+- Chart.js: visible points on line charts (pointRadius 2, hit radius 10), scientific tick formatter when needed.
+- Rename "Wind Dir" to "Wind Direction" in LCD label map.
 
 ## 0.4.0
 
